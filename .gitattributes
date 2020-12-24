@@ -1,0 +1,1 @@
+digit-recognizer/train.csv filter=lfs diff=lfs merge=lfs -text

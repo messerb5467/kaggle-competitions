@@ -1,0 +1,18 @@
+name: kaggle-env
+channels:
+  - defaults
+dependencies:
+  - scikit-learn
+  - pandas
+  - matplotlib
+  - seaborn
+  - statsmodels
+  - xgboost
+  - tensorflow-estimator
+  - keras
+  - pytorch
+  - pip
+  - jupyter_core
+  - notebook
+prefix: /home/messerb/anaconda3/envs/kaggle-env
+
