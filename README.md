@@ -1,0 +1,4 @@
+# Overview
+My name is Brad Messer and I've come from a large applied mathematics background as well as engineering experience working on the IBM Z analytics strategy. This repo will contain all of the kaggle competitions I'm working through in my spare time. If you have any interest in discussing machine learning, AI or any other data science or mathematical related topics please keep in touch. I've done complexity theory, stochastic processes, markov chains, predator-prey systems, etc and would always enjoy a good talk in this area. I also enjoy taking classes on ai, machine learning, and anything else related to computational mathematics.
+
+Eventually I'd like to work into the IBM AI Workflow certification as well as classes about gradient optimization, expectation maximization and the like. Thanks so much!
