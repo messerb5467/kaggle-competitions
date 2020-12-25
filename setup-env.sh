@@ -11,4 +11,5 @@ conda install -c pytorch pytorch -y
 conda install -c main pip -y
 conda install -c anaconda jupyter_core -y
 conda install -c conda-forge notebook -y
+conda install -c conda-forge hyperopt -y
 yes | pip install kaggle
