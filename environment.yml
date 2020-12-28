@@ -15,5 +15,6 @@ dependencies:
   - jupyter_core
   - notebook
   - hyperopt
+  - nltk
 prefix: /home/messerb/anaconda3/envs/kaggle-env
 

@@ -11,7 +11,7 @@ bleach @ file:///home/conda/feedstock_root/build_artifacts/bleach_1600454382015/
 blinker==1.4
 brotlipy==0.7.0
 cachetools @ file:///tmp/build/80754af9/cachetools_1596822027882/work
-certifi==2020.12.5
+certifi==2020.6.20
 cffi @ file:///tmp/build/80754af9/cffi_1600699146221/work
 chardet==3.0.4
 click==7.1.2
@@ -58,6 +58,7 @@ nbconvert @ file:///home/conda/feedstock_root/build_artifacts/nbconvert_16054018
 nbformat @ file:///home/conda/feedstock_root/build_artifacts/nbformat_1602732862338/work
 nest-asyncio @ file:///home/conda/feedstock_root/build_artifacts/nest-asyncio_1605195931949/work
 networkx @ file:///home/conda/feedstock_root/build_artifacts/networkx_1598210780226/work
+nltk @ file:///tmp/build/80754af9/nltk_1592496090529/work
 notebook @ file:///home/conda/feedstock_root/build_artifacts/notebook_1605103633466/work
 numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1603570489231/work
 oauthlib==3.1.0
@@ -90,6 +91,7 @@ python-slugify==4.0.1
 pytz==2020.1
 PyYAML==5.3.1
 pyzmq==20.0.0
+regex @ file:///tmp/build/80754af9/regex_1602786672676/work
 requests @ file:///tmp/build/80754af9/requests_1592841827918/work
 requests-oauthlib==1.3.0
 rsa @ file:///tmp/build/80754af9/rsa_1596998415516/work
