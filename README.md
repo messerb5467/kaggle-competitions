@@ -9,9 +9,3 @@ please follow this for [basic installation instructions](https://docs.github.com
 and this for [WSL installation](https://bigfont.ca/use-git-large-file-storage-lfs-in-the-windows-subsystem-for-linux-wsl/).
 My personal environment runs inside WSL2 so there may be additional steps not linked to for git LFS basic installs. 
 If that is the case, please let me know and I'll update the README.md file.
-
-## Known issues in the conda environment
-While installing from both anaconda and conda-forge, the following packages will bounce back and forth between two different versions:
-  ca-certificates    conda-forge::ca-certificates-2020.12.~ --> anaconda::ca-certificates-2020.10.14-0
-  certifi            conda-forge::certifi-2020.12.5-py38h5~ --> anaconda::certifi-2020.6.20-py38_0
-  openssl            conda-forge::openssl-1.1.1i-h7f98852_0 --> anaconda::openssl-1.1.1h-h7b6447c_0
