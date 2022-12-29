@@ -28,10 +28,10 @@ from keras.layers import (
     Dropout,
     PReLU)
 
-class AllstateModelTrainer:
-    def __init__(tpu_name):
-        os.env['TPU_NAME'] = tpu_name
-        os.env['TPU_LOAD_LIBRARY'] = 0
+class AllStateModelTrainer:
+    def __init__(self, tpu_name):
+        os.environ['TPU_NAME'] = tpu_name
+        os.environ['TPU_LOAD_LIBRARY'] = 0
 
     def _initialize_tpu_cluster_(self):
         try:
