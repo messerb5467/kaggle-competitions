@@ -7,12 +7,12 @@ Original file is located at
     https://colab.research.google.com/drive/1QaS1j_SR-xTvmhGpLuvRq42fMeVyanys
 """
 
+import argparse
 import glob
 import numpy as np
+import os
 import pandas as pd
-import pprint
 import tensorflow as tf
-import time
 from common import (
     df_to_dataset, 
     get_encoded_layer)
@@ -28,97 +28,118 @@ from keras.layers import (
     Dropout,
     PReLU)
 
-try:
-  tpu = tf.distribute.cluster_resolver.TPUClusterResolver()
-  print('Running on TPU worker', tpu.cluster_spec().as_dict()['worker'])
-except ValueError:
-  raise BaseException('ERROR: Not connected to a TPU runtime.')
+class AllstateModelTrainer:
+    def __init__(tpu_name):
+        os.env['TPU_NAME'] = tpu_name
+        os.env['TPU_LOAD_LIBRARY'] = 0
 
-tf.config.experimental_connect_to_cluster(tpu)
-tf.tpu.experimental.initialize_tpu_system(tpu)
-tpu_strategy = tf.distribute.TPUStrategy(tpu)
+    def _initialize_tpu_cluster_(self):
+        try:
+            tpu = tf.distribute.cluster_resolver.TPUClusterResolver()
+            print('Running on TPU worker', tpu.cluster_spec().as_dict()['worker'])
+        except ValueError:
+            raise BaseException('ERROR: Not connected to a TPU runtime.')
+        tf.config.experimental_connect_to_cluster(tpu)
+        tf.tpu.experimental.initialize_tpu_system(tpu)
+        self.tpu_strategy = tf.distribute.TPUStrategy(tpu)
 
-def encode_columns(df, ds, col_type='cat', dtype='string'):
-    all_layers = list()
-    matched_cols = [col for col in df.columns if col_type in col]
-    for col in matched_cols:
-        print(f"The column name is: {col}")
-        input = tf.keras.Input(shape=df[col].shape, name=col, dtype=dtype)
-        enc_layer = get_encoded_layer(col_type, col, ds, dtype)
-        encoded_layer = enc_layer(input)
-        print(f"The layers have been stacked together: {encoded_layer}")
-        all_layers.append((input, encoded_layer))
-        df.drop(columns=[col], inplace=True)
-    return all_layers
+    def _encode_columns_(self, df, ds, col_type='cat', dtype='string'):
+        all_layers = list()
+        matched_cols = [col for col in df.columns if col_type in col]
+        for col in matched_cols:
+            print(f"The column name is: {col}")
+            input = tf.keras.Input(shape=df[col].shape, name=col, dtype=dtype)
+            enc_layer = get_encoded_layer(col_type, col, ds, dtype)
+            encoded_layer = enc_layer(input)
+            print(f"The layers have been stacked together: {encoded_layer}")
+            all_layers.append((input, encoded_layer))
+            df.drop(columns=[col], inplace=True)
+        return all_layers
 
-def process_layers(layer_list):
-    input_layers = list()
-    encoded_layers = list()
-    for input_layer, encoded_layer in layer_list:
-        input_layers.append(input_layer)
-        encoded_layers.append(encoded_layer)
-    return (input_layers, encoded_layers)
+    def _process_layers_(self, layer_list):
+        input_layers = list()
+        encoded_layers = list()
+        for input_layer, encoded_layer in layer_list:
+            input_layers.append(input_layer)
+            encoded_layers.append(encoded_layer)
+        return (input_layers, encoded_layers)
 
-def preprocess_data():
-    values_by_csv = {}
-    for data in glob.glob('*.csv'):
-        df = pd.read_csv(data)
-        if 'test' in data:
-            df['loss'] = np.nan
-        df['loss'] = np.log(df['loss'].values+200)
-        ids = df.pop('id')
-        ds = df_to_dataset(df, 'loss')
-        cat_input_cols, cat_enc_cols = process_layers(encode_columns(df, ds))
-        num_input_cols, num_enc_cols = process_layers(encode_columns(df, ds, col_type='cont', dtype='float'))
-        gen_items_keys = ['ids', 'ds', 'cat_input_cols', 'cat_enc_cols', 'num_input_cols', 'num_enc_cols']
-        gen_items = [ids, ds, cat_input_cols, cat_enc_cols, num_input_cols, num_enc_cols]
-        values_by_csv[data] = {}
-        for item_key, item in zip(gen_items_keys, gen_items):
-          values_by_csv[data][item_key] = item
-    return values_by_csv
+    def _preprocess_data_(self):
+        values_by_csv = {}
+        for data in glob.glob('*.csv'):
+            df = pd.read_csv(data)
+            if 'test' in data:
+                df['loss'] = np.nan
+            df['loss'] = np.log(df['loss'].values+200)
+            ids = df.pop('id')
+            ds = df_to_dataset(df, 'loss')
+            cat_input_cols, cat_enc_cols = self._process_layers_(self._encode_columns_(df, ds))
+            num_input_cols, num_enc_cols = self._process_layers_(self._encode_columns_(df, ds, col_type='cont', dtype='float'))
+            gen_items_keys = ['ids', 'ds', 'cat_input_cols', 'cat_enc_cols', 'num_input_cols', 'num_enc_cols']
+            gen_items = [ids, ds, cat_input_cols, cat_enc_cols, num_input_cols, num_enc_cols]
+            values_by_csv[data] = {}
+            for item_key, item in zip(gen_items_keys, gen_items):
+                values_by_csv[data][item_key] = item
+        return values_by_csv
 
-def build_dense_block(model,
-                      num_neurons):
-  model = Dense(num_neurons)(model)
-  model = PReLU()(model)
-  model = BatchNormalization()(model)
-  model = Dropout(0.001 * num_neurons)(model)
-  return model
+    def _build_dense_block_(self,
+                            model,
+                            num_neurons):
+        model = Dense(num_neurons)(model)
+        model = PReLU()(model)
+        model = BatchNormalization()(model)
+        model = Dropout(0.001 * num_neurons)(model)
+        return model
 
-def build_nn_model(preprocessed_data):
-    train_data = preprocessed_data['train.csv']
-    input_layers = list()
-    enc_layers = list()
+    def _build_nn_model_(self, preprocessed_data):
+        train_data = preprocessed_data['train.csv']
+        input_layers = list()
+        enc_layers = list()
 
-    for key in ['cat_input_cols', 'num_input_cols']:
-        input_layers.extend(train_data[key])
-        del train_data[key]
+        for key in ['cat_input_cols', 'num_input_cols']:
+            input_layers.extend(train_data[key])
+            del train_data[key]
 
-    for key in ['cat_enc_cols', 'num_enc_cols']:
-        enc_layers.extend(train_data[key])
-        del train_data[key]
+        for key in ['cat_enc_cols', 'num_enc_cols']:
+            enc_layers.extend(train_data[key])
+            del train_data[key]
     
-    x = concatenate(enc_layers)
-    del enc_layers
-    for num_neurons in [400, 200, 50]:
-      x = build_dense_block(x, num_neurons)
-    output = Dense(1)(x)
-    model = Model(input_layers, output)
-    model.compile(loss = 'mse', optimizer = 'adadelta')
-    del input_layers
-    return model
+        x = concatenate(enc_layers)
+        del enc_layers
+        for num_neurons in [400, 200, 50]:
+          x = self._build_dense_block_(x, num_neurons)
+        output = Dense(1)(x)
+        model = Model(input_layers, output)
+        model.compile(loss = 'mse', optimizer = 'adadelta')
+        del input_layers
+        return model
 
-with tpu_strategy.scope():
-    preprocessed_data = preprocess_data()
-    model = build_nn_model(preprocessed_data)
+    def preprocess_data_and_build_train_model(self):
+        self._initialize_tpu_cluster_()
+        with self.tpu_strategy.scope():
+            preprocessed_data = self._preprocess_data_()
+            model = self._build_nn_model_(preprocessed_data)
 
-early_stopper = EarlyStopping(monitor='accuracy', patience=20)
-model_check = ModelCheckpoint(filepath='best_model.hdf5', 
-                              monitor='accuracy', 
-                              save_best_only=True)
-reduce_lr = ReduceLROnPlateau()
+        early_stopper = EarlyStopping(monitor='accuracy', patience=20)
+        model_check = ModelCheckpoint(filepath='best_model.hdf5', 
+                                      monitor='accuracy', 
+                                      save_best_only=True)
+        reduce_lr = ReduceLROnPlateau()
+        history = model.fit(preprocess_data['train.csv']['ds'],
+                            steps_per_epoch=1800,
+                            epochs=20,
+                            callbacks=[early_stopper, model_check, reduce_lr])
 
-history = model.fit(preprocess_data['train.csv']['ds'],
-                    steps_per_epoch=1800,
-                    epochs=20,
-                    callbacks=[early_stopper, model_check, reduce_lr])
+def process_parameters():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('tpu_name',
+                        help='The name of the tpu pod to initialize as used in the gcloud create command.')
+    return parser.parse_args()
+
+def main():
+    args = process_parameters()
+    allstate_nn_model = AllStateModelTrainer(args.tpu_name)
+    allstate_nn_model.preprocess_data_and_build_train_model()
+
+if __name__ == '__main__':
+    main()
